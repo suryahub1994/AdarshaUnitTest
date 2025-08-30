@@ -1,4 +1,4 @@
-CXX = g++
+CXX = g++ -std=c++20
 
 .PHONY: all clean
 
