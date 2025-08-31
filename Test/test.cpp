@@ -46,9 +46,14 @@ int main(int argc, char** argv) {
                 }
             }
 
-            return Adarsha::TestRepository::runAll(names);
+            return  RUN_ALL_WITH(names);// Adarsha::TestRepository::runAll(names);
+        }
+        else if (argumentOne.rfind("--list") == 0 || argumentOne == "-l")
+        {
+            LIST();
+            return 0;
         }
     }
 
-    return Adarsha::TestRepository::runAll();
+    return RUN_ALL();
 }

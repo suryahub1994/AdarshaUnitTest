@@ -20,6 +20,12 @@ public:
   static void registerTest(std::string name, std::function<void()> fn) {
     repository.emplace(std::move(name), std::move(fn));
   }
+  static int listTest() {
+    for (auto& [name, fn] : repository) {
+        std::cout<<name<<std::endl;
+    }
+    std::cout<<std::endl;
+  }
 
   static int runAll(const std::set<std::string>& filter = {}) {
     int pass = 0, fail = 0;
@@ -66,3 +72,7 @@ struct TestRegistrar {
   static ::Adarsha::TestRegistrar AD_JOIN(_adarsha_reg_, __LINE__){ (name), (lambda_body) }
 
 #define RUN_ALL() ::Adarsha::TestRepository::runAll()
+
+#define RUN_ALL_WITH(names) ::Adarsha::TestRepository::runAll((names))
+
+#define LIST() ::Adarsha::TestRepository::listTest();
