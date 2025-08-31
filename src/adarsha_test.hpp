@@ -1,8 +1,10 @@
+#pragma once
 #include <iostream>
 #include <map>
 #include <source_location>
 
 #include "adarsha_assertions.hpp"
+#include "adarsha_logging.hpp"
 
 #define TEST(name, value) Adarsha::TestRepository::registerTest(name, value)
 #define RUN_ALL() Adarsha::TestRepository::runAll();
@@ -22,11 +24,15 @@ public:
     for (auto& [name, fn] : repository) {
       try {
         fn();
-        std::cout << "PASS " << name << "\n";
+        std::string message = "PASS: " + name;
+        printMessage(message, Adarsha::Status::SUCCESS);
       } catch (const Adarsha::AssertFail& e) {
-        std::cout << "FAIL " << name << " : " << e.what() << "\n";
+        std::string failMessage =  "FAIL " +  name + " : " +  e.what();
+        printMessage(failMessage, Adarsha::Status::ERROR);
+
       } catch (...) {
-        std::cout << "FAIL " << name << " : unknown exception\n";
+        std::string failMessage =  "FAIL " +  name + " : " + "Unknown exception";
+        printMessage(failMessage, Adarsha::Status::ERROR); 
       }
     }
   }
