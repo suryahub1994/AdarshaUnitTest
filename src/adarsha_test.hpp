@@ -21,36 +21,36 @@ public:
     repository[testName] = func;
   }
 
-  static void runAll() {
-    int countOfSucess = 0, countOfFailure = 0;
-    for (auto& [name, fn] : repository) {
-      try {
-        fn();
-        countOfSucess++;
-        std::string message = "PASS: " + name;
-        printMessage(message, Adarsha::Status::SUCCESS);
-      } catch (const Adarsha::AssertFail& e) {
-        countOfFailure++;
-        std::string failMessage =  "FAIL " +  name + " : " +  e.what();
-        printMessage(failMessage, Adarsha::Status::ERROR);
+  static int runAll(const std::set<std::string>& filter = {}) {
+    int countOfSuccess = 0, countOfFailure = 0;
 
-      } catch (...) {
-        countOfFailure++;
-        std::string failMessage =  "FAIL " +  name + " : " + "Unknown exception";
-        printMessage(failMessage, Adarsha::Status::ERROR); 
-      }
+    for (auto& [name, fn] : repository) {
+        // If a name filter is provided, skip tests not in it
+        if (!filter.empty() && filter.count(name) == 0) continue;
+
+        try {
+            fn();
+            ++countOfSuccess;
+            printMessage("PASS: " + name, Adarsha::Status::SUCCESS);
+        } catch (const Adarsha::AssertFail& e) {
+            ++countOfFailure;
+            printMessage("FAIL " + name + " : " + e.what(), Adarsha::Status::ERROR);
+        } catch (...) {
+            ++countOfFailure;
+            printMessage("FAIL " + name + " : Unknown exception", Adarsha::Status::ERROR);
+        }
     }
+
     printMessage("-------------------------------------------", Adarsha::Status::SUCCESS);
-    printMessage(std::format("Test cases passed: {}", countOfSucess), Adarsha::Status::SUCCESS);
+    printMessage(std::format("Test cases passed: {}", countOfSuccess), Adarsha::Status::SUCCESS);
     printMessage(std::format("Test cases failed: {}", countOfFailure), Adarsha::Status::ERROR);
-    if (countOfFailure == 0)
-    {
-      printMessage("Test harness succeeded", Adarsha::Status::SUCCESS);
+
+    if (countOfFailure == 0) {
+        printMessage("Test harness succeeded", Adarsha::Status::SUCCESS);
+    } else {
+        printMessage("Test harness failed", Adarsha::Status::ERROR);
     }
-    else
-    {
-      printMessage("Test harness failed", Adarsha::Status::ERROR); 
-    }
-  }
+    return countOfFailure ? 1 : 0;
+}
 };
 } // namespace Adarsha
