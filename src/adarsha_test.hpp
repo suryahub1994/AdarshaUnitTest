@@ -1,56 +1,68 @@
 #pragma once
-#include <format>
+#include <functional>
 #include <iostream>
 #include <map>
+#include <set>
+#include <string>
+#include <format>
 #include <source_location>
 
 #include "adarsha_assertions.hpp"
 #include "adarsha_logging.hpp"
 
-#define TEST(name, value) Adarsha::TestRepository::registerTest(name, value)
-#define RUN_ALL() Adarsha::TestRepository::runAll();
-
 namespace Adarsha {
+
 class TestRepository {
 private:
   inline static std::map<std::string, std::function<void()>> repository{};
 
 public:
-  static void registerTest(const std::string &testName,
-                           std::function<void()> func) {
-    repository[testName] = func;
+  static void registerTest(std::string name, std::function<void()> fn) {
+    repository.emplace(std::move(name), std::move(fn));
   }
 
   static int runAll(const std::set<std::string>& filter = {}) {
-    int countOfSuccess = 0, countOfFailure = 0;
-
+    int pass = 0, fail = 0;
     for (auto& [name, fn] : repository) {
-        // If a name filter is provided, skip tests not in it
-        if (!filter.empty() && filter.count(name) == 0) continue;
-
-        try {
-            fn();
-            ++countOfSuccess;
-            printMessage("PASS: " + name, Adarsha::Status::SUCCESS);
-        } catch (const Adarsha::AssertFail& e) {
-            ++countOfFailure;
-            printMessage("FAIL " + name + " : " + e.what(), Adarsha::Status::ERROR);
-        } catch (...) {
-            ++countOfFailure;
-            printMessage("FAIL " + name + " : Unknown exception", Adarsha::Status::ERROR);
-        }
+      if (!filter.empty() && !filter.count(name)) continue;
+      try {
+        fn();
+        ++pass;
+        printMessage("PASS: " + name, Status::SUCCESS);
+      } catch (const AssertFail& e) {
+        ++fail;
+        printMessage("FAIL " + name + " : " + e.what(), Status::ERROR);
+      } catch (...) {
+        ++fail;
+        printMessage("FAIL " + name + " : Unknown exception", Status::ERROR);
+      }
     }
-
-    printMessage("-------------------------------------------", Adarsha::Status::SUCCESS);
-    printMessage(std::format("Test cases passed: {}", countOfSuccess), Adarsha::Status::SUCCESS);
-    printMessage(std::format("Test cases failed: {}", countOfFailure), Adarsha::Status::ERROR);
-
-    if (countOfFailure == 0) {
-        printMessage("Test harness succeeded", Adarsha::Status::SUCCESS);
-    } else {
-        printMessage("Test harness failed", Adarsha::Status::ERROR);
-    }
-    return countOfFailure ? 1 : 0;
-}
+    printMessage("-------------------------------------------", Status::SUCCESS);
+    printMessage(std::format("Test cases passed: {}", pass), Status::SUCCESS);
+    printMessage(std::format("Test cases failed: {}", fail), Status::ERROR);
+    printMessage(fail ? "Test harness failed" : "Test harness succeeded",
+                 fail ? Status::ERROR : Status::SUCCESS);
+    return fail ? 1 : 0;
+  }
 };
+
+// Registrar must be defined **after** TestRepository so it can call it.
+struct TestRegistrar {
+  TestRegistrar(const std::string& name, std::function<void()> fn) {
+    TestRepository::registerTest(name, std::move(fn));
+  }
+};
+
 } // namespace Adarsha
+
+// ----- Macros -----
+// Two-stage token pasting to make a unique identifier with __LINE__
+#define AD_JOIN2(a,b) a##b
+#define AD_JOIN(a,b)  AD_JOIN2(a,b)
+
+// Define a test at global scope using a static registrar object.
+// Usage: TEST("name", []{ /* body */ });
+#define TEST(name, lambda_body) \
+  static ::Adarsha::TestRegistrar AD_JOIN(_adarsha_reg_, __LINE__){ (name), (lambda_body) }
+
+#define RUN_ALL() ::Adarsha::TestRepository::runAll()

@@ -1,4 +1,5 @@
 #include "../src/adarsha_test.hpp"
+#include "sample_test.hpp"
 #include <iostream>
 #include <set>
 #include <string>
