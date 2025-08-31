@@ -1,4 +1,5 @@
 #pragma once
+#include <format>
 #include <iostream>
 #include <map>
 #include <source_location>
@@ -21,19 +22,34 @@ public:
   }
 
   static void runAll() {
+    int countOfSucess = 0, countOfFailure = 0;
     for (auto& [name, fn] : repository) {
       try {
         fn();
+        countOfSucess++;
         std::string message = "PASS: " + name;
         printMessage(message, Adarsha::Status::SUCCESS);
       } catch (const Adarsha::AssertFail& e) {
+        countOfFailure++;
         std::string failMessage =  "FAIL " +  name + " : " +  e.what();
         printMessage(failMessage, Adarsha::Status::ERROR);
 
       } catch (...) {
+        countOfFailure++;
         std::string failMessage =  "FAIL " +  name + " : " + "Unknown exception";
         printMessage(failMessage, Adarsha::Status::ERROR); 
       }
+    }
+    printMessage("-------------------------------------------", Adarsha::Status::SUCCESS);
+    printMessage(std::format("Test cases passed: {}", countOfSucess), Adarsha::Status::SUCCESS);
+    printMessage(std::format("Test cases failed: {}", countOfFailure), Adarsha::Status::ERROR);
+    if (countOfFailure == 0)
+    {
+      printMessage("Test harness succeeded", Adarsha::Status::SUCCESS);
+    }
+    else
+    {
+      printMessage("Test harness failed", Adarsha::Status::ERROR); 
     }
   }
 };
